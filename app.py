@@ -2,39 +2,48 @@ import streamlit as st
 import requests
 import pandas as pd
 import time
+import plotly.express as px
 
-# Page Configurtion  - Demonstrates UI/UX
-st.set_page_config(page_title="UK Finanace Monitor", page_icon='📈')
+st.set_page_config(page_title="UK FinTech Dashboard", layout="wide")
 
-st.title("🚀 UK Crypto & Finance Dashboard")
-st.markdown(f"**Developer:** Abdullah Mohammed | **Status:** BCS Student Member**")
+# Professional Sidebar
+st.sidebar.title("💳 Portfolio Settings")
+st.sidebar.info("Developer: Abdullah Mohammed | BCS Member")
+currency = st.sidebar.selectbox("Base Currency", ["GBP", "USD", "EUR"])
 
+# App Tabs - Shows organized architecture
+tab1, tab2, tab3 = st.tabs(["🪙 Crypto Tracker", "📈 Stock Watch", "🛡️ Risk Analysis"])
 
-# Sidebar for user settings - matches "Information Systems" module logic
-st.sidebar.header("Settings")
-currency = st.sidebar.selectbox("Select Currency", ("GBP", "USD"))
-update_interval = st.sidebar.slider("Update Interval (seconds)", 10,60,30)
+def fetch_data(coins):
+    ids = ",".join(coins)
+    url = f"https://api.coingecko.com/api/v3/simple/price?ids={ids}&vs_currencies={currency.lower()}&include_24hr_change=true"
+    return requests.get(url).json()
 
-
-def get_data(coin_id='bitcoin'):
-    url=f"https://api.coingecko.com/api/v3/simple/price?ids={coin_id}&vs_currencies={currency.lower()}&include_24hr_change=true"
-    try:
-        response = requests.get(url)
-        return response.json()[coin_id]
-    except:
-        return None
+with tab1:
+    st.header("Live Crypto Market")
+    tracked_coins = ['bitcoin', 'ethereum', 'solana', 'cardano']
+    data = fetch_data(tracked_coins)
     
-# Placeholder for live data
-placeholder = st.empty()
+    # Create dynamic columns for the top 4 coins
+    cols = st.columns(4)
+    for i, coin in enumerate(tracked_coins):
+        price = data[coin][currency.lower()]
+        change = data[coin][f"{currency.lower()}_24h_change"]
+        cols[i].metric(coin.capitalize(), f"{currency} {price:,.2f}", f"{change:.2f}%")
 
-# Real-time loop
-while True:
-    data = get_data()
-    if data:
-        with placeholder.container():
-            # Displaying metrics - Industry standard for dashboards
-            col1, col2 = st.columns(2)
-            col1.metric("Bitcoin Price", f"{currency} {data[currency.lower()]:,.2f}")
-            col2.metric("24h Change", f"{data[f'{currency.lower()}_24h_change']:.2f}%")
+    # Visualisation Section - Demonstrates Pandas/Plotly skills
+    st.subheader("Market Performance Comparison")
+    df = pd.DataFrame({
+        'Asset': [c.capitalize() for c in tracked_coins],
+        'Price': [data[c][currency.lower()] for c in tracked_coins]
+    })
+    fig = px.bar(df, x='Asset', y='Price', color='Asset', title="Current Price Comparison")
+    st.plotly_chart(fig, use_container_width=True)
 
-    time.sleep(update_interval)    
+with tab2:
+    st.warning("⚠️ Integration with London Stock Exchange (LSE) API is currently in development.")
+    st.info("Check the GitHub Issues tab for progress updates on Stock tracking.")
+
+with tab3:
+    st.subheader("Security & Compliance")
+    st.write("This application adheres to **GDPR principles** for data handling. No personal financial data is stored locally.")
