@@ -1,53 +1,43 @@
 import streamlit as st
-import requests
-import pandas as pd
-import time
-import plotly.express as px
-import yfinance as yf
+from engine.finance_engine import FinanceEngine
+import plotly.graph_objects as go
 
-st.set_page_config(page_title="UK FinTech Dashboard", layout="wide", page_icon="🏦")
+# Custom CSS to make it look like a High-End Fintech App
+st.markdown("""
+    <style>
+    .stApp { background-color: #f8f9fa; }
+    .metric-card { background: white; padding: 20px; border-radius: 10px; box-shadow: 2px 2px 10px rgba(0,0,0,0.1); }
+    </style>
+    """, unsafe_allow_html=True)
 
-# Professional Sidebar - Showcasing your Napier & BCS Status
-st.sidebar.title("💳 Portfolio Control")
-st.sidebar.info(f"Developer: Abdullah Mohammed\nBCS Student Member | Napier Rep")
-currency = st.sidebar.selectbox("Base Currency", ["GBP", "USD", "EUR"])
+st.title("🛡️ Secure Finance Hub (V1.0)")
+st.info("Professional Student Member: British Computer Society (BCS) | Edinburgh Napier University")
 
-tab1, tab2, tab3 = st.tabs(["🪙 Crypto Tracker", "📈 UK Stock Watch", "🛡️ Compliance & Risk"])
+# Initialize Engine
+engine = FinanceEngine(currency="GBP")
 
-def fetch_crypto(coins):
-    url = f"https://api.coingecko.com/api/v3/simple/price?ids={','.join(coins)}&vs_currencies={currency.lower()}&include_24hr_change=true"
-    return requests.get(url).json()
+# Main Interface
+menu = st.sidebar.radio("Navigation", ["Dashboard", "Asset Intelligence", "Banking Simulation"])
 
-with tab1:
-    st.header("Live Crypto Market")
-    tracked_coins = ['bitcoin', 'ethereum', 'solana']
-    data = fetch_crypto(tracked_coins)
+if menu == "Dashboard":
+    st.subheader("Global Portfolio Overview")
     
-    cols = st.columns(3)
-    for i, coin in enumerate(tracked_coins):
-        price = data[coin][currency.lower()]
-        change = data[coin][f"{currency.lower()}_24h_change"]
-        cols[i].metric(coin.capitalize(), f"{currency} {price:,.2f}", f"{change:.2f}%")
+    # Real-time Crypto Metrics
+    crypto_data = engine.get_crypto_assets()
+    c1, c2, c3 = st.columns(3)
+    c1.metric("Bitcoin", f"£{crypto_data['bitcoin']['gbp']:,}")
+    c2.metric("Ethereum", f"£{crypto_data['ethereum']['gbp']:,}")
+    c3.metric("Solana", f"£{crypto_data['solana']['gbp']:,}")
 
-    # Interactive Chart using Plotly
-    df = pd.DataFrame({'Asset': [c.capitalize() for c in tracked_coins], 
-                       'Price': [data[c][currency.lower()] for c in tracked_coins]})
-    st.plotly_chart(px.bar(df, x='Asset', y='Price', color='Asset', title="Real-time Price Comparison"), use_container_width=True)
+elif menu == "Asset Intelligence":
+    st.subheader("UK Stock Market Integration (FTSE)")
+    stocks_df = engine.get_uk_stocks()
+    st.table(stocks_df)
+    st.caption("Data provided via LSE Real-time integration (Simulated API Pipeline).")
 
-with tab2:
-    st.header("FTSE 100 & UK Market Watch")
-    # Using yfinance to track actual UK Stocks (Matches your IEUK experience with Dyson/PwC)
-    uk_stocks = ['RR.L', 'BP.L', 'VOD.L'] # Rolls Royce, BP, Vodafone
-    stock_data = []
-    
-    for symbol in uk_stocks:
-        ticker = yf.Ticker(symbol)
-        price = ticker.fast_info['last_price']
-        stock_data.append({"Ticker": symbol, "Price": round(price, 2)})
-    
-    st.table(pd.DataFrame(stock_data))
-    st.info("Stock data is pulled via Yahoo Finance API - Demonstrating multi-API integration.")
-
-with tab3:
-    st.subheader("GDPR & Ethical AI Principles")
-    st.write("This dashboard follows **Ethical AI principles** as studied at Edinburgh Napier[cite: 14, 68]. No user financial data is logged or stored, ensuring total data privacy.")
+elif menu == "Banking Simulation":
+    st.subheader("Fintech Integration (Revolut / Monzo)")
+    st.warning("Secure API Handshake simulation active.")
+    # Demonstrates your Cybersecurity & Secure Coding skills
+    st.code("POST /auth/v1/bank-connect HTTP/1.1\nHost: api.revolut.com\nAuthorization: Bearer [ENCRYPTED_JWT]")
+    st.success("GDPR-Compliant Connection Established.")
